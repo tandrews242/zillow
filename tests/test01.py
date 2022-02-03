@@ -3,6 +3,7 @@ import unittest
 import pytest
 import time
 import json
+import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -14,7 +15,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-class TestT01Entervalidinterestrate():
+class TestInterestRate():
   def setup_method(self, method):
     options = Options()
     self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
@@ -23,62 +24,118 @@ class TestT01Entervalidinterestrate():
   def teardown_method(self, method):
     self.driver.quit()
 
-  def test_t01Entervalidinterestrate(self):
-    # Test name: T01 - Enter valid interest rate
-    # Step # | name | target | value
+  def test_t01ValidateDefaults(self):
+    # Test name: T01 - Validate default values
 
-    # 1 | open | https://www.zillow.com/mortgage-calculator/ |
     # Open mortgage calculator
     self.driver.get("https://www.zillow.com/mortgage-calculator/")
 
-    # 2 | setWindowSize | 1167x1053 |
-    self.driver.set_window_size(1167, 1053)
+    # Set window size
+    self.driver.set_window_size(1200, 1200)
+    logging.debug('Setting window size to 1200x1200')
 
-    # 3 | verifyValue | id=homePrice | 300,000
     # Verify default home price
     value = self.driver.find_element(By.ID, "homePrice").get_attribute("value")
     assert value == "300,000"
+    logging.debug('Verifying default home price value')
 
-    # 4 | verifyValue | id=form-1_downPayment | 60,000
     # Verify default down payment
     value = self.driver.find_element(By.ID, "form-1_downPayment").get_attribute("value")
     assert value == "60,000"
+    logging.debug('Verifying default downpayment value')
 
-    # 5 | verifyValue | id=form-1_downPaymentPercent | 20
     # Verify default down payment percent
     value = self.driver.find_element(By.ID, "form-1_downPaymentPercent").get_attribute("value")
     assert value == "20"
+    logging.debug('Verifying default down payment percentage')
 
-    # 6 | verifySelectedLabel | id=form-1_term | 30 year fixed
     # Verify default loan program
     element = self.driver.find_element(By.ID, "form-1_term")
     locator = "option[@value='{}']".format(element.get_attribute("value"))
     selected_text = element.find_element(By.XPATH, locator).text
     assert selected_text == "30 year fixed"
+    logging.debug('Verifying default loan program type')
 
-    # 7 | verifyValue | id=rate | 3.668
     # Verify default interest rate
     value = self.driver.find_element(By.ID, "rate").get_attribute("value")
-    assert value == "3.647"
+    assert value == "3.586"
+    logging.debug('Verifying default interest rate')
 
-    # 8 | verifyText | css=g:nth-child(4) > text:nth-child(2) | $1,415
     # Verify default payment
-    assert self.driver.find_element(By.CSS_SELECTOR, "g:nth-child(4) > text:nth-child(2)").text == "$1,413"
+    assert self.driver.find_element(By.CSS_SELECTOR, "g:nth-child(4) > text:nth-child(2)").text == "$1,404"
+    logging.debug('Verifying default payment')
 
-    # 9 | doubleClick | id=rate |
+  def test_t01ValidInterestRate(self):
+    # Test name: T02 - Using a valid interest rate
+
+    # Open mortgage calculator and validate the default values
+    self.test_t01ValidateDefaults()
+
     # Select interest rate text
     element = self.driver.find_element(By.ID, "rate")
     actions = ActionChains(self.driver)
     actions.double_click(element).perform()
 
-    # 10 | type | id=rate | 3.5
-    # Enter valid interest rate
+    # Enter a valid interest rate
     self.driver.find_element(By.ID, "rate").send_keys("3.5")
+    logging.debug('Changing interest rate to 3.5%')
 
-    # 11 | click | css=.rd3-chart |
     # Click outside of field to commit the value
     self.driver.find_element(By.CSS_SELECTOR, ".rd3-chart").click()
 
-    # 12 | waitForText | css=g:nth-child(4) > text:nth-child(2) | $1,393
-    # Verify new payment
+    # Verify payment amount with new interest rate
     WebDriverWait(self.driver, 30).until(expected_conditions.text_to_be_present_in_element((By.CSS_SELECTOR, "g:nth-child(4) > text:nth-child(2)"), "$1,393"))
+    logging.debug('Verifying payment amount with new interest rate')
+  def test_t01InvalidInterestRate(self):
+    # Test name: T03 - Using invalid interest rates
+
+    # Open mortgage calculator and validate the default values
+    self.test_t01ValidateDefaults()
+
+    # Select interest rate text
+    element = self.driver.find_element(By.ID, "rate")
+    actions = ActionChains(self.driver)
+    actions.double_click(element).perform()
+
+    # Select interest rate text
+    element = self.driver.find_element(By.ID, "rate")
+    actions = ActionChains(self.driver)
+    actions.double_click(element).perform()
+
+    # Enter an interest rate less than 0%
+    self.driver.find_element(By.ID, "rate").send_keys("-5")
+
+    # Click outside of field to commit the value
+    self.driver.find_element(By.CSS_SELECTOR, ".rd3-chart").click()
+
+    # Verify that the below bounds error message is displayed
+    assert self.driver.find_element(By.XPATH, "//div[@id=\'zmm-calc-payment\']/div/div[2]/div/form/div[4]/p").text == "Rate must be greater than or equal to 0"
+
+    # Select the interest rate text
+    element = self.driver.find_element(By.ID, "rate")
+    actions = ActionChains(self.driver)
+    actions.double_click(element).perform()
+
+    # Enter an interest rate above 100%
+    self.driver.find_element(By.ID, "rate").send_keys("120")
+
+    # Click outside of field to commit the value
+    self.driver.find_element(By.CSS_SELECTOR, ".rd3-chart").click()
+
+    # Verify that the above bounds error message is displayed
+    assert self.driver.find_element(By.XPATH, "//div[@id=\'zmm-calc-payment\']/div/div[2]/div/form/div[4]/p").text == "Rate must be less than or equal to 100"
+
+
+    # Select the interest rate text
+    element = self.driver.find_element(By.ID, "rate")
+    actions = ActionChains(self.driver)
+    actions.double_click(element).perform()
+
+    # Enter a value that is not a number
+    self.driver.find_element(By.ID, "rate").send_keys("abc")
+
+    # Click outside of field to commit the value
+    self.driver.find_element(By.CSS_SELECTOR, ".rd3-chart").click()
+
+    # Verify that the "not a number" error message is displayed
+    assert self.driver.find_element(By.XPATH, "//div[@id=\'zmm-calc-payment\']/div/div[2]/div/form/div[4]/p").text == "'abc' is not a valid number"
