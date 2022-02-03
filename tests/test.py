@@ -23,7 +23,7 @@ class TestInterestRate():
   def teardown_method(self, method):
     self.driver.quit()
 
-  def test_t01ValidateDefaults(self):
+  def test_t01_validateDefaults(self):
     # Test name: T01 - Validate default values
 
     # Open mortgage calculator
@@ -66,11 +66,11 @@ class TestInterestRate():
     print("{}".format(self.vars["defaultPayment"]))
     logging.debug('Default payment is %f', self.vars["defaultPayment"])
 
-  def test_t01ValidInterestRate(self):
+  def test_t02_validInterestRate(self):
     # Test name: T02 - Using a valid interest rate
 
     # Open mortgage calculator and validate the default values
-    self.test_t01ValidateDefaults()
+    self.test_t01_validateDefaults()
 
     # Clear interest rate text
     element = self.driver.find_element(By.ID, "rate")
@@ -89,11 +89,11 @@ class TestInterestRate():
     print("{}".format(self.vars["newPayment"]))
     logging.debug('New payment is %f', self.vars["newPayment"])
 
-  def test_t01InvalidInterestRate(self):
+  def test_t03_invalidInterestRate(self):
     # Test name: T03 - Using invalid interest rates
 
     # Open mortgage calculator and validate the default values
-    self.test_t01ValidateDefaults()
+    self.test_t01_validateDefaults()
 
     # Clear interest rate text
     element = self.driver.find_element(By.ID, "rate")
@@ -110,6 +110,7 @@ class TestInterestRate():
     assert len(elements) > 0
     self.vars["lowerBoundMessage"] = self.driver.find_element(By.XPATH, "//div[@id=\'zmm-calc-payment\']/div/div[2]/div/form/div[4]/p").text
     print("{}".format(self.vars["lowerBoundMessage"]))
+    logging.debug("{}".format(self.vars["lowerBoundMessage"]))
     assert self.vars["lowerBoundMessage"]== "Rate must be greater than or equal to 0"
 
     # Clear interest rate text
@@ -127,6 +128,7 @@ class TestInterestRate():
     assert len(elements) > 0
     self.vars["upperBoundMessage"] = self.driver.find_element(By.XPATH, "//div[@id=\'zmm-calc-payment\']/div/div[2]/div/form/div[4]/p").text
     print("{}".format(self.vars["upperBoundMessage"]))
+    logging.debug("{}".format(self.vars["upperBoundMessage"]))
     assert self.vars["upperBoundMessage"] == "Rate must be less than or equal to 100"
 
     # Clear interest rate text
@@ -144,4 +146,5 @@ class TestInterestRate():
     assert len(elements) > 0
     self.vars["invalidTypeMessage"] = self.driver.find_element(By.XPATH, "//div[@id=\'zmm-calc-payment\']/div/div[2]/div/form/div[4]/p").text
     print("{}".format(self.vars["invalidTypeMessage"]))
+    logging.debug("{}".format(self.vars["invalidTypeMessage"]))
     assert self.vars["invalidTypeMessage"] == "'abc' is not a valid number"
